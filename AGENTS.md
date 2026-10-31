@@ -10,7 +10,7 @@
 <!-- LOVABLE:END -->
 
 - Preserve published history while automatic repository synchronization is active to prevent conflicting versions.
-- Opening rain uses an effect-initialized canvas with cached streak sprites, seal and paper-half collision splashes, CSS-token colors, reduced-motion fallback and cancelled frames; keep weather local to the opening gate and mounted through the animation-completed cut and reveal to preserve other page effects.
+- Opening rain uses an effect-initialized canvas with cached streak, wet-bead and absorption sprites, seal and paper-half collision splashes, CSS-token colors, reduced-motion fallback and cancelled frames; keep weather local to the opening gate and mounted through the animation-completed cut and reveal to preserve other page effects. Render one unclipped notice at idle and reveal the clipped halves only on breaking to avoid a visible pre-cut seam.
 - Story text lives as typed blocks in src/lib/story.ts (with inline *bold* / {red} markers and optional fx), rendered by StoryFlow; edit content there, not in route files.
 - Katana 3D models are meshopt-compressed GLBs loaded only client-side (lazy + ClientOnly) because three.js cannot run during SSR.
 - Site media (photos, katana GLBs, background music) ships inside the repo under public/ and is referenced by absolute path, so the site serves itself on any static host; do not move it back to hosted asset pointers.
