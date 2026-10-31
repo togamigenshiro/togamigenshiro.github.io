@@ -89,7 +89,11 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
     });
   }, [blade, mouthPlane]);
   const elapsed = useRef(SHEATHE_DURATION);
-  useEffect(() => { elapsed.current = state === "intro" ? SHEATHE_DURATION : 0; }, [state]);
+  const previousState = useRef<State>("intro");
+  useEffect(() => {
+    elapsed.current = previousState.current === "intro" ? SHEATHE_DURATION : 0;
+    previousState.current = state;
+  }, [state]);
   useFrame((_, raw) => {
     elapsed.current += raw;
     const drawn = state === "drawn";
