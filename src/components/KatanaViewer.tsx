@@ -150,7 +150,9 @@ function CamRig({ settle, reduced }: { settle: React.MutableRefObject<number>; r
     if (!controls) return;
     const dt = Math.min(raw, 0.05);
     const active = settle.current > 0;
-    controls.autoRotate = !active && !reduced;
+    const speed = active || reduced ? 0 : 0.8;
+    controls.autoRotateSpeed = THREE.MathUtils.damp(controls.autoRotateSpeed, speed, 3, dt);
+    controls.autoRotate = !reduced && controls.autoRotateSpeed > 0.001;
     if (!active) return;
     settle.current -= dt;
   });
