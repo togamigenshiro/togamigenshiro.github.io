@@ -1,4 +1,6 @@
 # Tasks
+- [ ] Add Japanese nationality, age 22 and height 6′2″ to the profile and verify them.
+- [ ] Replace the weapon draw/sheath crossfade with convincing staged blade motion and verify both directions.
 - [x] Make idle paper intact with gentle handling wear; polish wet crimson paper impacts and verify the opening.
 - [x] Detail opening rain and paper collisions, age the notice, improve the cut and keep rain until the page reveal completes; verify the complete opening.
 - [x] Weather the opening wax seal, replace idle petals with motion-blurred crimson rain hitting the seal, and retain the break-seal petal burst; verify opening and exit.
