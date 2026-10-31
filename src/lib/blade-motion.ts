@@ -1,7 +1,8 @@
 export const DRAW_DURATION = 4.8;
 export const SHEATHE_DURATION = 5.2;
 
-const smooth = (t: number) => t * t * (3 - 2 * t);
+// Zero velocity AND acceleration at each boundary avoids a jerk leaving a hold.
+const smooth = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
 /** Release the habaki, hold, extract along the saya, then settle. Reverse with a slow final seat. */
 export function bladeTravel(time: number, drawing: boolean) {
   const stops: [number, number][] = drawing

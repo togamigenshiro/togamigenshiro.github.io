@@ -1,4 +1,5 @@
 # Tasks
+- [ ] Smooth weapon extraction and insertion easing and verify both directions.
 - [x] Add Japanese nationality, age 22 and height 6′2″ to the profile and verify them.
 - [x] Replace the weapon draw/sheath crossfade with convincing staged blade motion and verify both directions.
 - [x] Make idle paper intact with gentle handling wear; polish wet crimson paper impacts and verify the opening.
