@@ -27,6 +27,18 @@ function useKatanaPart(url: string, sheath = false) {
     scene.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
       const geometry = object.geometry.clone();
+      // Quantized GLBs store normalized integers; matrix transforms need writable floats.
+      for (const name of ["position", "normal"]) {
+        const attribute = geometry.getAttribute(name);
+        if (!attribute) continue;
+        const values = new Float32Array(attribute.count * 3);
+        for (let i = 0; i < attribute.count; i++) {
+          values[i * 3] = attribute.getX(i);
+          values[i * 3 + 1] = attribute.getY(i);
+          values[i * 3 + 2] = attribute.getZ(i);
+        }
+        geometry.setAttribute(name, new THREE.BufferAttribute(values, 3));
+      }
       geometry.applyMatrix4(object.matrixWorld);
       geometry.applyMatrix4(transform);
       if (sheath) {
@@ -68,8 +80,8 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
   const assembly = useRef<THREE.Group>(null);
   const moving = useRef<THREE.Group>(null);
   const highlight = useRef<THREE.SpotLight>(null);
-  const elapsed = useRef(0);
-  useEffect(() => { elapsed.current = 0; }, [state]);
+  const elapsed = useRef(SHEATHE_DURATION);
+  useEffect(() => { elapsed.current = state === "intro" ? SHEATHE_DURATION : 0; }, [state]);
   useFrame((_, raw) => {
     elapsed.current += Math.min(raw, 0.05);
     const drawn = state === "drawn";
