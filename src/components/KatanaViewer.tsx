@@ -235,7 +235,7 @@ export default function KatanaViewer() {
       </Canvas>
       <Loader />
 
-      <div className="absolute inset-x-0 bottom-14 flex flex-col items-center gap-3">
+      <div className="absolute inset-x-0 bottom-32 flex flex-col items-center gap-3 md:bottom-14">
         <Button variant="outline" size="lg" disabled={drawing || loading || state === "intro"}
           onClick={toggle}
           className="h-12 min-w-56 rounded-sm border-gold/60 bg-lacquer/70 font-display text-sm uppercase text-paper backdrop-blur hover:bg-primary hover:text-paper"
