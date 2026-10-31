@@ -7,6 +7,7 @@ import { Petals, RoseMark } from "@/components/Petals";
 import { Fx, type FxKind } from "@/components/Fx";
 import { Rich } from "@/components/StoryFlow";
 import { AudioLines, ArrowUpRight } from "lucide-react";
+import { togamiProfile } from "@/lib/profile";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -85,6 +86,16 @@ function Index() {
             <p className="mt-6 max-w-md text-lg text-muted-foreground">
               A disgraced ronin living the flashy life of a kabukimono. A freelance bounty hunter who bends every local law to his advantage, and who hides a strange, sincere obsession with collecting red roses.
             </p>
+            <dl className="mt-7 grid max-w-md grid-cols-3 gap-4 border-y border-gold/25 py-4">
+              {[
+                ["Nationality", togamiProfile.nationality],
+                ["Age", `${togamiProfile.age}`],
+                ["Height", `${togamiProfile.heightFeet}′${togamiProfile.heightInches}″`],
+              ].map(([label, value]) => <div key={label}>
+                <dt className="font-display text-xs uppercase text-muted-foreground">{label}</dt>
+                <dd className="mt-1 font-display text-xl text-gold">{value}</dd>
+              </div>)}
+            </dl>
             <div className="mt-10 flex flex-wrap gap-4">
               <Link to="/story" className="bg-primary px-7 py-3 font-display text-sm uppercase tracking-[0.3em] text-primary-foreground transition hover:bg-blood">
                 Read his story
