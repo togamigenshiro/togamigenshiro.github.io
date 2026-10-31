@@ -95,8 +95,7 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
     previousState.current = state;
   }, [state]);
   useFrame((_, raw) => {
-    // A stalled render must not skip a visible section of the extraction.
-    elapsed.current += Math.min(raw, 0.05);
+    elapsed.current += raw;
     const drawn = state === "drawn";
     const amount = reduced ? (drawn ? 1 : 0) : bladeTravel(elapsed.current, drawn);
     if (moving.current) moving.current.position.x = -amount * 3.05;
