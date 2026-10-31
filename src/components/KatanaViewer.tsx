@@ -80,10 +80,18 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
   const assembly = useRef<THREE.Group>(null);
   const moving = useRef<THREE.Group>(null);
   const highlight = useRef<THREE.SpotLight>(null);
+  const mouthPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(-1, 0, 0), -0.7), []);
+  useEffect(() => {
+    blade.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.forEach((material) => { material.clippingPlanes = [mouthPlane]; material.needsUpdate = true; });
+    });
+  }, [blade, mouthPlane]);
   const elapsed = useRef(SHEATHE_DURATION);
   useEffect(() => { elapsed.current = state === "intro" ? SHEATHE_DURATION : 0; }, [state]);
   useFrame((_, raw) => {
-    elapsed.current += Math.min(raw, 0.05);
+    elapsed.current += raw;
     const drawn = state === "drawn";
     const amount = reduced ? (drawn ? 1 : 0) : bladeTravel(elapsed.current, drawn);
     if (moving.current) moving.current.position.x = -amount * 3.05;
@@ -91,6 +99,8 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
       assembly.current.position.x = amount * 1.22;
       // No twisting during insertion: the steel stays aligned with the mouth.
       assembly.current.rotation.z = -0.035;
+      assembly.current.updateMatrixWorld(true);
+      mouthPlane.set(new THREE.Vector3(-1, 0, 0), -0.7).applyMatrix4(assembly.current.matrixWorld);
     }
     if (highlight.current) {
       highlight.current.position.x = -3.3 + amount * 4.5;
@@ -204,7 +214,7 @@ export default function KatanaViewer() {
 
   return (
     <div ref={box} className="relative h-full w-full" data-blade-state={state} data-blade-moving={drawing}>
-      <Canvas camera={{ position: [0, 0.4, 3.6], fov: 40 }} dpr={[1, 2]}>
+      <Canvas gl={{ localClippingEnabled: true }} camera={{ position: [0, 0.4, 3.6], fov: 40 }} dpr={[1, 1.5]}>
         <ambientLight intensity={0.45} />
         <directionalLight position={[3, 4, 2]} intensity={1.6} color="#ffe2c0" />
         <directionalLight position={[-4, -1, -2]} intensity={1.2} color="#b3261e" />
