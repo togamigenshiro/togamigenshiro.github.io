@@ -153,6 +153,7 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
     const drawn = state === "drawn";
     const amount = reduced ? (drawn ? 1 : 0) : bladeTravel(elapsed.current, drawn);
     const arc = reduced ? 0 : flourish(elapsed.current, drawn);
+    (document.querySelector("[data-blade-state]") as HTMLElement | null)?.setAttribute("data-amount", `${amount.toFixed(3)}|${elapsed.current.toFixed(2)}|${arc.toFixed(2)}`);
     const previous = lastAmount.current;
     velocity.current = reduced ? 0 : (amount - previous) / Math.max(raw, 0.001);
     lastAmount.current = amount;
