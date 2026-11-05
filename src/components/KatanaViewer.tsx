@@ -10,7 +10,7 @@ const SHEATHED_URL = "/models/katana-sheathed.glb";
 const BLADE_URL = "/models/katana-blade.glb";
 import { playMotionCue } from "@/lib/sfx";
 import { scrollToId } from "@/lib/scroll";
-import { bladeTravel, DRAW_DURATION, SHEATHE_DURATION } from "@/lib/blade-motion";
+import { bladeTravel, flourish, DRAW_DURATION, SHEATHE_DURATION } from "@/lib/blade-motion";
 
 type State = "intro" | "sheathed" | "drawn";
 
@@ -73,6 +73,56 @@ function useKatanaPart(url: string, sheath = false) {
 }
 
 type Hover = (p: { x: number; y: number } | null) => void;
+
+/** A red slash arc that flares and dissolves when the blade snaps out. */
+function SlashArc({ flash }: { flash: React.MutableRefObject<number> }) {
+  const mesh = useRef<THREE.Mesh>(null);
+  const material = useRef<THREE.MeshBasicMaterial>(null);
+  const clock = useRef(0);
+  useFrame((_, raw) => {
+    if (flash.current > 0) { clock.current = 0.0001; flash.current = 0; }
+    if (clock.current <= 0) return;
+    clock.current += raw;
+    const t = clock.current / 0.55;
+    if (t >= 1 || !mesh.current || !material.current) {
+      if (material.current) material.current.opacity = 0;
+      if (t >= 1) clock.current = 0;
+      return;
+    }
+    material.current.opacity = (1 - t) * 0.9;
+    const s = 0.6 + t * 1.5;
+    mesh.current.scale.set(s, s, s);
+    mesh.current.rotation.z = -0.55 - t * 0.35;
+  });
+  return (
+    <mesh ref={mesh} position={[-2.4, 0.35, 0.55]} rotation={[0.25, 0.15, -0.55]}>
+      <torusGeometry args={[1.9, 0.025, 8, 48, Math.PI * 0.75]} />
+      <meshBasicMaterial ref={material} color="#e23b2e" transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} />
+    </mesh>
+  );
+}
+
+/** Crimson speed streaks that flare with the blade's velocity. */
+function SpeedStreaks({ velocity }: { velocity: React.MutableRefObject<number> }) {
+  const materials = useRef<(THREE.MeshBasicMaterial | null)[]>([]);
+  useFrame(() => {
+    const v = Math.min(1, Math.abs(velocity.current) * 1.1);
+    materials.current.forEach((material, i) => {
+      if (material) material.opacity = v * (0.4 - i * 0.08);
+    });
+  });
+  const streaks: [number, number, number][] = [[-1.1, 0.3, 1.4], [-1.9, -0.18, 1.1], [-0.5, -0.3, 0.9], [-2.5, 0.5, 1.2]];
+  return (
+    <group>
+      {streaks.map(([x, y, length], i) => (
+        <mesh key={i} position={[x, y, 0.45]}>
+          <planeGeometry args={[length, 0.02]} />
+          <meshBasicMaterial ref={(m) => { materials.current[i] = m; }} color="#d4483a" transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
 
 function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: () => void; onHover: Hover; reduced: boolean }) {
   const sheath = useKatanaPart(SHEATHED_URL, true);
