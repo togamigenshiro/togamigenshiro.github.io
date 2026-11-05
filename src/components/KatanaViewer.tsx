@@ -131,6 +131,10 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
   const moving = useRef<THREE.Group>(null);
   const highlight = useRef<THREE.SpotLight>(null);
   const mouthPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(-1, 0, 0), -0.7), []);
+  const impact = useRef(0);
+  const flash = useRef(0);
+  const velocity = useRef(0);
+  const lastAmount = useRef(0);
   useEffect(() => {
     blade.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
@@ -148,23 +152,41 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
     elapsed.current += raw;
     const drawn = state === "drawn";
     const amount = reduced ? (drawn ? 1 : 0) : bladeTravel(elapsed.current, drawn);
-    if (moving.current) moving.current.position.x = -amount * 3.05;
+    const arc = reduced ? 0 : flourish(elapsed.current, drawn);
+    const previous = lastAmount.current;
+    velocity.current = reduced ? 0 : (amount - previous) / Math.max(raw, 0.001);
+    lastAmount.current = amount;
+    if (!reduced) {
+      if (drawn && previous < 0.99 && amount >= 0.99) { impact.current = 1; flash.current = 1; }
+      if (!drawn && previous > 0.03 && amount <= 0.03) impact.current = 0.55;
+    }
+    if (moving.current) {
+      moving.current.position.x = -amount * 3.05;
+      moving.current.position.y = arc * 0.22;
+      moving.current.rotation.z = arc * 0.3;
+      moving.current.rotation.y = arc * -0.15;
+    }
     if (assembly.current) {
       assembly.current.position.x = amount * 1.22;
-      // No twisting during insertion: the steel stays aligned with the mouth.
-      assembly.current.rotation.z = -0.035;
+      assembly.current.rotation.z = -0.035 - arc * 0.05;
+      if (impact.current > 0.001) {
+        impact.current = Math.max(0, impact.current - raw * 2.6);
+        assembly.current.position.y = Math.sin(elapsed.current * 70) * impact.current * 0.06;
+      } else assembly.current.position.y = 0;
       assembly.current.updateMatrixWorld(true);
       mouthPlane.set(new THREE.Vector3(-1, 0, 0), -0.7).applyMatrix4(assembly.current.matrixWorld);
     }
     if (highlight.current) {
       highlight.current.position.x = -3.3 + amount * 4.5;
-      highlight.current.intensity = 5 + Math.sin(amount * Math.PI) * 4;
+      highlight.current.intensity = 5 + Math.sin(Math.min(amount, 1) * Math.PI) * 4 + impact.current * 6;
     }
   });
   const out = () => { document.body.style.cursor = ""; onHover(null); };
   return <>
     <spotLight ref={highlight} position={[-3, 2, 3]} angle={0.28} penumbra={0.8} intensity={6} />
     <group ref={assembly} scale={0.8}>
+      <SlashArc flash={flash} />
+      <SpeedStreaks velocity={velocity} />
       <primitive object={sheath} />
       <group ref={moving}
         onPointerMove={(event) => {
@@ -259,7 +281,7 @@ export default function KatanaViewer() {
     sounds.current = [playMotionCue("lock")];
     timers.current.forEach(clearTimeout);
     timers.current = [];
-    timers.current.push(setTimeout(() => sounds.current.push(playMotionCue("draw")), reduced ? 0 : drawingOut ? 1050 : 700));
+    timers.current.push(setTimeout(() => sounds.current.push(playMotionCue("draw")), reduced ? 0 : drawingOut ? 380 : 300));
     timers.current.push(setTimeout(() => {
       sounds.current.push(playMotionCue("lock"));
       setDrawing(false);
