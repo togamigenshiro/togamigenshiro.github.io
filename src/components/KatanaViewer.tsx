@@ -10,7 +10,7 @@ const SHEATHED_URL = "/models/katana-sheathed.glb";
 const BLADE_URL = "/models/katana-blade.glb";
 import { playMotionCue } from "@/lib/sfx";
 import { scrollToId } from "@/lib/scroll";
-import { bladeTravel, DRAW_DURATION, SHEATHE_DURATION } from "@/lib/blade-motion";
+import { bladeTravel, flourish, DRAW_DURATION, SHEATHE_DURATION } from "@/lib/blade-motion";
 
 type State = "intro" | "sheathed" | "drawn";
 
@@ -74,6 +74,56 @@ function useKatanaPart(url: string, sheath = false) {
 
 type Hover = (p: { x: number; y: number } | null) => void;
 
+/** A red slash arc that flares and dissolves when the blade snaps out. */
+function SlashArc({ flash }: { flash: React.MutableRefObject<number> }) {
+  const mesh = useRef<THREE.Mesh>(null);
+  const material = useRef<THREE.MeshBasicMaterial>(null);
+  const clock = useRef(0);
+  useFrame((_, raw) => {
+    if (flash.current > 0) { clock.current = 0.0001; flash.current = 0; }
+    if (clock.current <= 0) return;
+    clock.current += raw;
+    const t = clock.current / 0.55;
+    if (t >= 1 || !mesh.current || !material.current) {
+      if (material.current) material.current.opacity = 0;
+      if (t >= 1) clock.current = 0;
+      return;
+    }
+    material.current.opacity = (1 - t) * 0.9;
+    const s = 0.6 + t * 1.5;
+    mesh.current.scale.set(s, s, s);
+    mesh.current.rotation.z = -0.55 - t * 0.35;
+  });
+  return (
+    <mesh ref={mesh} position={[-2.4, 0.35, 0.55]} rotation={[0.25, 0.15, -0.55]}>
+      <torusGeometry args={[1.9, 0.025, 8, 48, Math.PI * 0.75]} />
+      <meshBasicMaterial ref={material} color="#e23b2e" transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} />
+    </mesh>
+  );
+}
+
+/** Crimson speed streaks that flare with the blade's velocity. */
+function SpeedStreaks({ velocity }: { velocity: React.MutableRefObject<number> }) {
+  const materials = useRef<(THREE.MeshBasicMaterial | null)[]>([]);
+  useFrame(() => {
+    const v = Math.min(1, Math.abs(velocity.current) * 1.1);
+    materials.current.forEach((material, i) => {
+      if (material) material.opacity = v * (0.4 - i * 0.08);
+    });
+  });
+  const streaks: [number, number, number][] = [[-1.1, 0.3, 1.4], [-1.9, -0.18, 1.1], [-0.5, -0.3, 0.9], [-2.5, 0.5, 1.2]];
+  return (
+    <group>
+      {streaks.map(([x, y, length], i) => (
+        <mesh key={i} position={[x, y, 0.45]}>
+          <planeGeometry args={[length, 0.02]} />
+          <meshBasicMaterial ref={(m) => { materials.current[i] = m; }} color="#d4483a" transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: () => void; onHover: Hover; reduced: boolean }) {
   const sheath = useKatanaPart(SHEATHED_URL, true);
   const blade = useKatanaPart(BLADE_URL);
@@ -81,6 +131,10 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
   const moving = useRef<THREE.Group>(null);
   const highlight = useRef<THREE.SpotLight>(null);
   const mouthPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(-1, 0, 0), -0.7), []);
+  const impact = useRef(0);
+  const flash = useRef(0);
+  const velocity = useRef(0);
+  const lastAmount = useRef(0);
   useEffect(() => {
     blade.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
@@ -98,23 +152,45 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
     elapsed.current += raw;
     const drawn = state === "drawn";
     const amount = reduced ? (drawn ? 1 : 0) : bladeTravel(elapsed.current, drawn);
-    if (moving.current) moving.current.position.x = -amount * 3.05;
+    const arc = reduced ? 0 : flourish(elapsed.current, drawn);
+    const host = document.querySelector("[data-blade-state]") as HTMLElement | null;
+    const freeze = host?.getAttribute("data-freeze");
+    if (freeze) elapsed.current = parseFloat(freeze);
+    host?.setAttribute("data-amount", `${amount.toFixed(3)}|${elapsed.current.toFixed(2)}|${arc.toFixed(2)}`);
+    const previous = lastAmount.current;
+    velocity.current = reduced ? 0 : (amount - previous) / Math.max(raw, 0.001);
+    lastAmount.current = amount;
+    if (!reduced) {
+      if (drawn && previous < 0.99 && amount >= 0.99) { impact.current = 1; flash.current = 1; }
+      if (!drawn && previous > 0.03 && amount <= 0.03) impact.current = 0.55;
+    }
+    if (moving.current) {
+      moving.current.position.x = -amount * 3.05;
+      moving.current.position.y = arc * 0.22;
+      moving.current.rotation.z = arc * 0.3;
+      moving.current.rotation.y = arc * -0.15;
+    }
     if (assembly.current) {
       assembly.current.position.x = amount * 1.22;
-      // No twisting during insertion: the steel stays aligned with the mouth.
-      assembly.current.rotation.z = -0.035;
+      assembly.current.rotation.z = -0.035 - arc * 0.05;
+      if (impact.current > 0.001) {
+        impact.current = Math.max(0, impact.current - raw * 2.6);
+        assembly.current.position.y = Math.sin(elapsed.current * 70) * impact.current * 0.06;
+      } else assembly.current.position.y = 0;
       assembly.current.updateMatrixWorld(true);
       mouthPlane.set(new THREE.Vector3(-1, 0, 0), -0.7).applyMatrix4(assembly.current.matrixWorld);
     }
     if (highlight.current) {
       highlight.current.position.x = -3.3 + amount * 4.5;
-      highlight.current.intensity = 5 + Math.sin(amount * Math.PI) * 4;
+      highlight.current.intensity = 5 + Math.sin(Math.min(amount, 1) * Math.PI) * 4 + impact.current * 6;
     }
   });
   const out = () => { document.body.style.cursor = ""; onHover(null); };
   return <>
     <spotLight ref={highlight} position={[-3, 2, 3]} angle={0.28} penumbra={0.8} intensity={6} />
     <group ref={assembly} scale={0.8}>
+      <SlashArc flash={flash} />
+      <SpeedStreaks velocity={velocity} />
       <primitive object={sheath} />
       <group ref={moving}
         onPointerMove={(event) => {
@@ -209,7 +285,7 @@ export default function KatanaViewer() {
     sounds.current = [playMotionCue("lock")];
     timers.current.forEach(clearTimeout);
     timers.current = [];
-    timers.current.push(setTimeout(() => sounds.current.push(playMotionCue("draw")), reduced ? 0 : drawingOut ? 1050 : 700));
+    timers.current.push(setTimeout(() => sounds.current.push(playMotionCue("draw")), reduced ? 0 : drawingOut ? 380 : 300));
     timers.current.push(setTimeout(() => {
       sounds.current.push(playMotionCue("lock"));
       setDrawing(false);

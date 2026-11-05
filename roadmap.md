@@ -32,3 +32,4 @@
 - [x] Tidy the repository: remove leftover metadata files and the unused error-reporting module; point the README at the live address.
 - [x] Remove the slash from the kenjutsu paragraph and add a self-constructing dojo on its left.
 - [x] Add screaming Japanese insults and !! around the greenhouse paragraph, with the screen shaking a little.
+- [x] Make the weapon sheathe/unsheathe faster, dynamic and original: flourish arc, overshoot snap, slash flash, speed streaks, impact shake.
