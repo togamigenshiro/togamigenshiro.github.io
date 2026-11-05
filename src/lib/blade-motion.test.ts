@@ -24,7 +24,7 @@ it("flourishes the blade arc during the draw and lifts it for a sheathe", () => 
 });
 
 it("eases out of holds and into stops without an acceleration jump", () => {
-  const step = 0.001;
+  const step = 0.0004;
   for (const [time, drawing] of [[0.35, true], [2.0, true], [0.3, false], [2.2, false], [2.45, false]] as const) {
     const before = bladeTravel(time - step, drawing);
     const at = bladeTravel(time, drawing);
