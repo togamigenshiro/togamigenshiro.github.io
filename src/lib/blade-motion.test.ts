@@ -18,9 +18,19 @@ it("selects exactly one complete weapon throughout both switches", () => {
     const duration = drawing ? DRAW_DURATION : SHEATHE_DURATION;
     for (let i = 0; i <= 100; i++) {
       const pose = weaponPose(duration * i / 100, drawing);
-      expect(pose.drawn).toBe(i >= 50 ? drawing : !drawing);
+      expect(pose.drawn).toBe(i >= 40 ? drawing : !drawing);
       expect(Number(pose.drawn) + Number(!pose.drawn)).toBe(1);
-      expect(pose.scale).toBeGreaterThanOrEqual(0.079);
+      expect(pose.scale).toBe(1);
     }
+  }
+});
+
+it("dashes sideways at full size, then returns without a position jump", () => {
+  for (const drawing of [true, false]) {
+    const duration = drawing ? DRAW_DURATION : SHEATHE_DURATION;
+    const cut = duration * 0.4;
+    expect(weaponPose(cut, drawing).offset).toBeCloseTo(drawing ? -0.85 : 0.85);
+    expect(weaponPose(cut - 0.00001, drawing).offset).toBeCloseTo(weaponPose(cut + 0.00001, drawing).offset, 5);
+    expect(weaponPose(duration, drawing).offset).toBe(0);
   }
 });
