@@ -1,35 +1,26 @@
 import { expect, it } from "vitest";
-import { bladeTravel, flourish, DRAW_DURATION, SHEATHE_DURATION } from "./blade-motion";
+import { weaponPose, DRAW_DURATION, SHEATHE_DURATION } from "./blade-motion";
 
-it("draws fast with a release hesitation and an overshoot settle", () => {
-  expect(bladeTravel(0, true)).toBe(0);
-  expect(bladeTravel(0.2, true)).toBeLessThanOrEqual(0.03);
-  expect(bladeTravel(2.0, true)).toBeCloseTo(1.035);
-  expect(bladeTravel(DRAW_DURATION, true)).toBe(1);
+it("finishes unsheathing in 0.65 seconds", () => {
+  expect(DRAW_DURATION).toBe(0.65);
+  expect(weaponPose(0, true).drawn).toBe(false);
+  expect(weaponPose(DRAW_DURATION, true)).toEqual({ drawn: true, scale: 1, offset: 0 });
 });
 
-it("sheathes with a lift, a fast insert, a mouth pause and a snap seat", () => {
-  expect(bladeTravel(0, false)).toBe(1);
-  expect(bladeTravel(0.3, false)).toBeCloseTo(1.02);
-  expect(bladeTravel(2.3, false)).toBeCloseTo(0.02);
-  expect(bladeTravel(SHEATHE_DURATION, false)).toBe(0);
+it("finishes sheathing in 0.7 seconds", () => {
+  expect(SHEATHE_DURATION).toBe(0.7);
+  expect(weaponPose(0, false).drawn).toBe(true);
+  expect(weaponPose(SHEATHE_DURATION, false)).toEqual({ drawn: false, scale: 1, offset: 0 });
 });
 
-it("flourishes the blade arc during the draw and lifts it for a sheathe", () => {
-  expect(flourish(0, true)).toBe(0);
-  expect(flourish(1.5, true)).toBe(1);
-  expect(flourish(DRAW_DURATION, true)).toBe(0);
-  expect(flourish(0, false)).toBe(1);
-  expect(flourish(1.2, false)).toBe(0);
-});
-
-it("eases out of holds and into stops without an acceleration jump", () => {
-  const step = 0.0004;
-  for (const [time, drawing] of [[0.35, true], [2.0, true], [0.3, false], [2.2, false], [2.45, false]] as const) {
-    const before = bladeTravel(time - step, drawing);
-    const at = bladeTravel(time, drawing);
-    const after = bladeTravel(time + step, drawing);
-    expect(Math.abs(after - before) / (2 * step)).toBeLessThan(0.001);
-    expect(Math.abs(after - 2 * at + before) / (step * step)).toBeLessThan(0.05);
+it("selects exactly one complete weapon throughout both switches", () => {
+  for (const drawing of [true, false]) {
+    const duration = drawing ? DRAW_DURATION : SHEATHE_DURATION;
+    for (let i = 0; i <= 100; i++) {
+      const pose = weaponPose(duration * i / 100, drawing);
+      expect(pose.drawn).toBe(i >= 50 ? drawing : !drawing);
+      expect(Number(pose.drawn) + Number(!pose.drawn)).toBe(1);
+      expect(pose.scale).toBeGreaterThanOrEqual(0.079);
+    }
   }
 });

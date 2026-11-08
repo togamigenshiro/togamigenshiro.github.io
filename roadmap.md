@@ -1,4 +1,5 @@
 # Tasks
+- [x] Show one complete weapon at a time, remove decorative effects and verify faster switching.
 - [x] Smooth weapon extraction and insertion easing and verify both directions.
 - [x] Add Japanese nationality, age 22 and height 6′2″ to the profile and verify them.
 - [x] Replace the weapon draw/sheath crossfade with convincing staged blade motion and verify both directions.
