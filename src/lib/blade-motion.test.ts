@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
-import { weaponPose, DRAW_DURATION, SHEATHE_DURATION } from "./blade-motion";
+import { weaponPose, DRAW_DURATION, SHEATHE_DURATION, SWAP, IMPACT } from "./blade-motion";
 
-const rest = (drawn: boolean) => ({ drawn, scale: 1, offset: 0, tilt: 0, spin: 0 });
+const rest = (drawn: boolean) => ({ drawn, scale: 1, offset: 0, lift: 0, tilt: 0, jolt: 0 });
 
 it("finishes unsheathing in 0.65 seconds", () => {
   expect(DRAW_DURATION).toBe(0.65);
@@ -20,22 +20,27 @@ it("selects exactly one complete weapon at full size throughout both switches", 
     const duration = drawing ? DRAW_DURATION : SHEATHE_DURATION;
     for (let i = 0; i <= 100; i++) {
       const pose = weaponPose(duration * i / 100, drawing);
-      expect(pose.drawn).toBe(i >= 40 ? drawing : !drawing);
+      expect(pose.drawn).toBe(i >= SWAP * 100 ? drawing : !drawing);
       expect(pose.scale).toBe(1);
     }
   }
 });
 
-it("swaps at maximum sideways displacement without a position jump", () => {
+it("swaps only while both weapons are off-screen on opposite sides", () => {
   for (const drawing of [true, false]) {
     const duration = drawing ? DRAW_DURATION : SHEATHE_DURATION;
-    const cut = duration * 0.4;
-    expect(weaponPose(cut, drawing).offset).toBeCloseTo(drawing ? -0.85 : 0.85);
-    expect(weaponPose(cut - 0.00001, drawing).offset).toBeCloseTo(weaponPose(cut + 0.00001, drawing).offset, 3);
+    const before = weaponPose(duration * SWAP - 1e-6, drawing).offset;
+    const after = weaponPose(duration * SWAP, drawing).offset;
+    expect(Math.abs(before)).toBeGreaterThan(6);
+    expect(Math.abs(after)).toBeGreaterThan(6);
+    expect(Math.sign(before)).toBe(-Math.sign(after));
   }
 });
 
-it("returns with one full twirl along the blade", () => {
-  expect(Math.abs(weaponPose(DRAW_DURATION * 0.99, true).spin)).toBeCloseTo(Math.PI * 2, 5);
-  expect(weaponPose(DRAW_DURATION * 0.3, true).spin).toBe(0);
+it("slashes in diagonally and lands with a camera jolt at impact", () => {
+  const entering = weaponPose(DRAW_DURATION * (SWAP + 0.01), true);
+  expect(entering.lift).toBeGreaterThan(1);
+  expect(Math.abs(entering.tilt)).toBeGreaterThan(0.5);
+  expect(weaponPose(DRAW_DURATION * IMPACT, true).jolt).toBe(1);
+  expect(weaponPose(DRAW_DURATION * 0.3, true).jolt).toBe(0);
 });

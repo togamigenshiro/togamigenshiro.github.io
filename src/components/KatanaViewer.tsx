@@ -73,6 +73,7 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
     elapsed.current = previousState.current === "intro" ? SHEATHE_DURATION : 0;
     previousState.current = state;
   }, [state]);
+  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   useFrame((_, raw) => {
     elapsed.current += raw;
     const drawing = state === "drawn";
@@ -81,10 +82,13 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
     blade.visible = pose.drawn;
     if (assembly.current) {
       assembly.current.scale.set(0.95 * pose.scale, 0.95, 0.95);
-      assembly.current.position.x = pose.offset;
-      assembly.current.rotation.x = pose.spin;
+      // Dash along the screen's horizontal, whatever angle the viewer has orbited to.
+      const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).setY(0).normalize();
+      assembly.current.position.copy(right.multiplyScalar(pose.offset)).setY(pose.lift);
       assembly.current.rotation.z = -0.035 + pose.tilt;
       const canvas = assembly.current.userData['canvas'] as HTMLCanvasElement | undefined;
+      const fov = 40 - 3.5 * pose.jolt;
+      if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
       if (canvas) canvas.dataset['visibleWeapon'] = pose.drawn ? "drawn" : "sheathed";
     }
   });
