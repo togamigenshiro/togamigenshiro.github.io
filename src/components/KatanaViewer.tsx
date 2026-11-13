@@ -82,7 +82,8 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
     if (assembly.current) {
       assembly.current.scale.set(0.95 * pose.scale, 0.95, 0.95);
       assembly.current.position.x = pose.offset;
-      assembly.current.rotation.z = -0.035;
+      assembly.current.rotation.x = pose.spin;
+      assembly.current.rotation.z = -0.035 + pose.tilt;
       const canvas = assembly.current.userData['canvas'] as HTMLCanvasElement | undefined;
       if (canvas) canvas.dataset['visibleWeapon'] = pose.drawn ? "drawn" : "sheathed";
     }
