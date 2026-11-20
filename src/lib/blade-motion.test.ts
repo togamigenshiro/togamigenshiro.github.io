@@ -1,16 +1,16 @@
 import { expect, it } from "vitest";
-import { weaponPose, DRAW_DURATION, SHEATHE_DURATION, SWAP, IMPACT } from "./blade-motion";
+import { weaponPose, DRAW_DURATION, SHEATHE_DURATION, SWAP } from "./blade-motion";
 
 const rest = (drawn: boolean) => ({ drawn, scale: 1, offset: 0, lift: 0, tilt: 0, jolt: 0 });
 
-it("finishes unsheathing in 0.65 seconds", () => {
-  expect(DRAW_DURATION).toBe(0.65);
+it("finishes unsheathing in 1.2 seconds", () => {
+  expect(DRAW_DURATION).toBe(1.2);
   expect(weaponPose(0, true).drawn).toBe(false);
   expect(weaponPose(DRAW_DURATION, true)).toEqual(rest(true));
 });
 
-it("finishes sheathing in 0.7 seconds", () => {
-  expect(SHEATHE_DURATION).toBe(0.7);
+it("finishes sheathing in 1.3 seconds", () => {
+  expect(SHEATHE_DURATION).toBe(1.3);
   expect(weaponPose(0, false).drawn).toBe(true);
   expect(weaponPose(SHEATHE_DURATION, false)).toEqual(rest(false));
 });
@@ -37,10 +37,16 @@ it("swaps only while both weapons are off-screen on opposite sides", () => {
   }
 });
 
-it("slashes in diagonally and lands with a camera jolt at impact", () => {
-  const entering = weaponPose(DRAW_DURATION * (SWAP + 0.01), true);
-  expect(entering.lift).toBeGreaterThan(1);
-  expect(Math.abs(entering.tilt)).toBeGreaterThan(0.5);
-  expect(weaponPose(DRAW_DURATION * IMPACT, true).jolt).toBe(1);
-  expect(weaponPose(DRAW_DURATION * 0.3, true).jolt).toBe(0);
+it("starts and settles smoothly without sudden jumps", () => {
+  for (const drawing of [true, false]) {
+    const duration = drawing ? DRAW_DURATION : SHEATHE_DURATION;
+    const step = duration / 200;
+    expect(Math.abs(weaponPose(step, drawing).offset)).toBeLessThan(0.01);
+    expect(Math.abs(weaponPose(duration - step, drawing).offset)).toBeLessThan(0.001);
+    for (let i = 1; i < 200; i++) {
+      if (Math.abs(i / 200 - SWAP) < 0.01) continue;
+      const a = weaponPose(step * (i - 1), drawing), b = weaponPose(step * i, drawing);
+      expect(Math.abs(b.offset - a.offset)).toBeLessThan(0.3);
+    }
+  }
 });

@@ -10,7 +10,7 @@ const SHEATHED_URL = "/models/katana-sheathed.glb";
 const BLADE_URL = "/models/katana-blade.glb";
 import { playMotionCue } from "@/lib/sfx";
 import { scrollToId } from "@/lib/scroll";
-import { weaponPose, DRAW_DURATION, SHEATHE_DURATION } from "@/lib/blade-motion";
+import { weaponPose, DRAW_DURATION, SHEATHE_DURATION, SWAP } from "@/lib/blade-motion";
 
 type State = "intro" | "sheathed" | "drawn";
 
@@ -87,7 +87,7 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
       assembly.current.position.copy(right.multiplyScalar(pose.offset)).setY(pose.lift);
       assembly.current.rotation.z = -0.035 + pose.tilt;
       const canvas = assembly.current.userData['canvas'] as HTMLCanvasElement | undefined;
-      const fov = 40 - 3.5 * pose.jolt;
+      const fov = 40 - 1.5 * pose.jolt;
       if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
       if (canvas) canvas.dataset['visibleWeapon'] = pose.drawn ? "drawn" : "sheathed";
     }
@@ -188,7 +188,7 @@ export default function KatanaViewer() {
     sounds.current = [playMotionCue("lock")];
     timers.current.forEach(clearTimeout);
     timers.current = [];
-    timers.current.push(setTimeout(() => sounds.current.push(playMotionCue("draw")), reduced ? 0 : drawingOut ? 160 : 180));
+    timers.current.push(setTimeout(() => sounds.current.push(playMotionCue("draw")), reduced ? 0 : duration * SWAP * 1000));
     timers.current.push(setTimeout(() => {
       sounds.current.push(playMotionCue("lock"));
       setDrawing(false);
