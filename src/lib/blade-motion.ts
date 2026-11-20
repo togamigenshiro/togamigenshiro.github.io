@@ -1,37 +1,31 @@
-export const DRAW_DURATION = 1.2;
-export const SHEATHE_DURATION = 1.3;
+export const DRAW_DURATION = 1.1;
+export const SHEATHE_DURATION = 1.2;
 
 /** Progress where the outgoing weapon is fully off-screen and the other one takes its place. */
-export const SWAP = 0.4;
+export const SWAP = 0.5;
 const EXIT = 6.5;
+const NUDGE = 0.12;
+
+const easeOut = (t: number) => 1 - (1 - t) ** 3;
+const easeIn = (t: number) => t ** 3;
 
 /**
- * Crescent glide (mikazuki): the current weapon eases away along a rising arc,
- * then the other weapon swoops in along a falling crescent from the opposite side
- * and settles with zero velocity. `jolt` (0..1) drives a soft camera breath.
+ * Straight slide along the blade's own axis, like a real draw.
+ * Negative offset = toward the handle (drawing direction), positive = toward the tip (sheathing).
+ * Thumb-push nudge, short tension hold, accelerating pull off one side; the other weapon
+ * continues the same straight motion in from the opposite side and slows to rest.
  */
 export function weaponPose(time: number, drawing: boolean) {
   const duration = drawing ? DRAW_DURATION : SHEATHE_DURATION;
   const p = Math.max(0, Math.min(1, time / duration));
-  const dir = drawing ? 1 : -1;
-  if (p >= 1) return { drawn: drawing, scale: 1, offset: 0, lift: 0, tilt: 0, jolt: 0 };
+  const dir = drawing ? -1 : 1;
+  if (p >= 1) return { drawn: drawing, scale: 1, offset: 0 };
+  if (p < 0.14) return { drawn: !drawing, scale: 1, offset: dir * NUDGE * easeOut(p / 0.14) };
+  if (p < 0.24) return { drawn: !drawing, scale: 1, offset: dir * NUDGE };
   if (p < SWAP) {
-    const e = (p / SWAP) ** 2;
-    return {
-      drawn: !drawing, scale: 1,
-      offset: dir * EXIT * e,
-      lift: 0.9 * Math.sin((e * Math.PI) / 2),
-      tilt: dir * 0.35 * e,
-      jolt: 0,
-    };
+    const t = easeIn((p - 0.24) / (SWAP - 0.24));
+    return { drawn: !drawing, scale: 1, offset: dir * (NUDGE + (EXIT - NUDGE) * t) };
   }
-  const t = (p - SWAP) / (1 - SWAP);
-  const left = (1 - t) ** 4;
-  return {
-    drawn: drawing, scale: 1,
-    offset: -dir * EXIT * left,
-    lift: 1.3 * Math.sqrt(left),
-    tilt: -dir * 0.6 * Math.sqrt(left),
-    jolt: Math.sin(Math.PI * t) ** 2,
-  };
+  const t = easeOut((p - SWAP) / (1 - SWAP));
+  return { drawn: drawing, scale: 1, offset: -dir * EXIT * (1 - t) };
 }

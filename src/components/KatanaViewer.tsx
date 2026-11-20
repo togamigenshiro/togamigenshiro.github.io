@@ -10,7 +10,7 @@ const SHEATHED_URL = "/models/katana-sheathed.glb";
 const BLADE_URL = "/models/katana-blade.glb";
 import { playMotionCue } from "@/lib/sfx";
 import { scrollToId } from "@/lib/scroll";
-import { weaponPose, DRAW_DURATION, SHEATHE_DURATION, SWAP } from "@/lib/blade-motion";
+import { weaponPose, DRAW_DURATION, SHEATHE_DURATION } from "@/lib/blade-motion";
 
 type State = "intro" | "sheathed" | "drawn";
 
@@ -82,13 +82,12 @@ function Katanas({ state, onRose, onHover, reduced }: { state: State; onRose: ()
     blade.visible = pose.drawn;
     if (assembly.current) {
       assembly.current.scale.set(0.95 * pose.scale, 0.95, 0.95);
-      // Dash along the screen's horizontal, whatever angle the viewer has orbited to.
+      // Slide across the screen, signed so the motion always heads toward the on-screen handle side.
       const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).setY(0).normalize();
-      assembly.current.position.copy(right.multiplyScalar(pose.offset)).setY(pose.lift);
-      assembly.current.rotation.z = -0.035 + pose.tilt;
+      const handleSide = right.x >= 0 ? 1 : -1;
+      assembly.current.position.copy(right.multiplyScalar(pose.offset * handleSide));
+      assembly.current.rotation.z = -0.035;
       const canvas = assembly.current.userData['canvas'] as HTMLCanvasElement | undefined;
-      const fov = 40 - 1.5 * pose.jolt;
-      if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
       if (canvas) canvas.dataset['visibleWeapon'] = pose.drawn ? "drawn" : "sheathed";
     }
   });
@@ -188,7 +187,7 @@ export default function KatanaViewer() {
     sounds.current = [playMotionCue("lock")];
     timers.current.forEach(clearTimeout);
     timers.current = [];
-    timers.current.push(setTimeout(() => sounds.current.push(playMotionCue("draw")), reduced ? 0 : duration * SWAP * 1000));
+    timers.current.push(setTimeout(() => sounds.current.push(playMotionCue("draw")), reduced ? 0 : duration * 0.24 * 1000));
     timers.current.push(setTimeout(() => {
       sounds.current.push(playMotionCue("lock"));
       setDrawing(false);
